@@ -19,6 +19,8 @@ UPGRADEINSECURE="Upgrade-Insecure-Requests: 1"
 
 # Target URLs
 LOGINURL="https://login.mts.ru/amserver/UI/Login?service=lk&amp;goto=http://lk.ssl.mts.ru/"
+LOGIN_PLAIN_URL="http://login.mts.ru:80/amserver/UI/Login?service=lk&amp;goto=http://lk.ssl.mts.ru/"
+
 VALIDATEURL="https://login.mts.ru:443/amserver/UI/Login?service=ihelper-sib&amp;goto=https%3A%2F%2Fihelper.sib.mts.ru%3A443%2Fselfcare%2Faccount-status.aspx"
 BALANCEURL="https://ihelper.sib.mts.ru/selfcare/account-status.aspx"
 
@@ -30,14 +32,15 @@ XMLHEAD="<?xml version=\"1.0\" encoding=\"utf-8\"?>"
 rm -f cookie.txt
 
 # STEP 1: Get the csrf tokens
+
 CSRFSTRING=$( curl -k -v -H "$KEEPALIVE" -H "$ACCEPTLANGUAGE" -H "$ACCEPTENCODING" \
     -H "$UPGRADEINSECURE" -H "$ACCEPTCONTENT" -A "$USERAGENT" \
-    -b cookie.txt -c cookie.txt "$LOGINURL" 2>&1 | grep csrf )
+    -b cookie.txt -c cookie.txt "${LOGIN_PLAIN_URL}" 2>&1 | tee first.html | grep csrf )
 
-CSRFNAMES=( $( echo "${XMLHEAD}<form>$CSRFSTRING" |\
+CSRFNAMES=( $( echo "${XMLHEAD}<html><body><form>$CSRFSTRING" |\
 	xmlstarlet sel -t -v '//form/input/@name' ) )
 
-CSRFVALUES=( $( echo "<?xml version=\"1.0\" encoding=\"utf-8\"?><form>$CSRFSTRING" |\
+CSRFVALUES=( $( echo "<?xml version=\"1.0\" encoding=\"utf-8\"?><html><body><form>$CSRFSTRING" |\
 	xmlstarlet sel -t -v '//form/input/@value' ) )
 
 declare -A CSRF
