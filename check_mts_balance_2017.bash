@@ -33,27 +33,21 @@ rm -f cookie.txt
 
 # STEP 1: Get the csrf tokens
 
-CSRFSTRING=$( curl -k -v -H "$KEEPALIVE" -H "$ACCEPTLANGUAGE" -H "$ACCEPTENCODING" \
-    -H "$UPGRADEINSECURE" -H "$ACCEPTCONTENT" -A "$USERAGENT" \
-    -b cookie.txt -c cookie.txt "${LOGIN_PLAIN_URL}" 2>&1 | grep csrf )
-
-CSRFNAMES=( $( echo "${XMLHEAD}<html><body><form>$CSRFSTRING" |\
-	xmlstarlet sel -t -v '//form/input/@name' ) )
-
-CSRFVALUES=( $( echo "<?xml version=\"1.0\" encoding=\"utf-8\"?><html><body><form>$CSRFSTRING" |\
-	xmlstarlet sel -t -v '//form/input/@value' ) )
-
 declare -A CSRF
 
-CSRF=( ["${CSRFNAMES[0]#csrf.}"]="${CSRFVALUES[0]}" \
-            ["${CSRFNAMES[1]#csrf.}"]="${CSRFVALUES[1]}" )
+CSRFTEXT=$( curl -s -k -H "$KEEPALIVE" -H "$ACCEPTLANGUAGE" -H "$ACCEPTENCODING" \
+    -H "$UPGRADEINSECURE" -H "$ACCEPTCONTENT" -A "$USERAGENT" \
+    -b cookie.txt -c cookie.txt "${LOGIN_PLAIN_URL}" | \
+    sed 's/\(<meta[^>]*\)>/\1\/>/g' | xmlstarlet sel -t -m '//form/input' -v 'concat("[",@name,"]=",@value," ")' )
+
+eval "CSRF=( ${CSRFTEXT} )"
 
 # STEP 2: Get authorization for the current session
 
 curl -k -v -H "$KEEPALIVE" -H "$ACCEPTLANGUAGE" \
     -H "$UPGRADEINSECURE" -H "$ACCEPTCONTENT" -A "$USERAGENT" \
     -b cookie.txt -c cookie.txt "$VALIDATEURL" -d \
-    "IDToken2=${PASSWORD}&IDToken1=${PHONE}&IDButton=Submit&loginURL=${LOGINPATH}&csrf.sign="${CSRF[sign]}"&csrf.ts=${CSRF[ts]}" > /dev/null 2>&1 
+    "IDToken2=${PASSWORD}&IDToken1=${PHONE}&IDButton=Submit&loginURL=${LOGINPATH}&csrf.sign="${CSRF[csrf.sign]}"&csrf.ts=${CSRF[csrf.ts]}" > /dev/null 2>&1 
 
 # STEP 3: Request the balance
 
