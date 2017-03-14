@@ -35,7 +35,7 @@ rm -f cookie.txt
 
 CSRFSTRING=$( curl -k -v -H "$KEEPALIVE" -H "$ACCEPTLANGUAGE" -H "$ACCEPTENCODING" \
     -H "$UPGRADEINSECURE" -H "$ACCEPTCONTENT" -A "$USERAGENT" \
-    -b cookie.txt -c cookie.txt "${LOGIN_PLAIN_URL}" 2>&1 | tee first.html | grep csrf )
+    -b cookie.txt -c cookie.txt "${LOGIN_PLAIN_URL}" 2>&1 | grep csrf )
 
 CSRFNAMES=( $( echo "${XMLHEAD}<html><body><form>$CSRFSTRING" |\
 	xmlstarlet sel -t -v '//form/input/@name' ) )
